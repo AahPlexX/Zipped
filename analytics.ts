@@ -1,431 +1,509 @@
-// src/types/analytics.ts
-// Defines types for analytics data structures, chart configurations, and report formats.
-// These types support the visualization and reporting of platform metrics.
-// Based on "Nsbs official file list.txt"
-// Developed by Luccas A E | 2025
 
-import { Identifiable, Timestamped } from './index';
+// src/lib/analytics.ts
 
-// --- General Analytics Structures ---
+import { prisma } from '@/lib/prisma';
+import { formatDate } from '@/lib/dates';
+import { AnalyticsQueryFilters, AnalyticsMetric } from '@/types/analytics';
 
 /**
- * Represents a single data point in a time series chart.
- */
-export interface TimeSeriesDataPoint {
-  date: string; // ISO date string (e.g., "2025-05-13") or timestamp
-  value: number;
-  category?: string; // Optional category for stacked/grouped charts
-}
-
-/**
- * Configuration for a chart component.
- * This is generic; specific charting libraries might have their own detailed types.
- */
-export interface ChartConfig {
-  type: 'line' | 'bar' | 'pie' | 'doughnut' | 'scatter';
-  data: {
-    labels: string[]; // X-axis labels or pie chart segment labels
-    datasets: ChartDataset[];
-  };
-  options?: Record<string, unknown>; // Options specific to the charting library
-}
-
-export interface ChartDataset {
-  label: string; // Legend label for the dataset
-  data: number[] | TimeSeriesDataPoint[];
-  backgroundColor?: string | string[];
-  borderColor?: string | string[];
-  // Other dataset-specific properties (e.g., fill, tension for line charts)
-}
-
-export type DateRangePreset = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth' | 'custom';
-
-export interface AnalyticsQueryParameters {
-  startDate?: string; // ISO Date
-  endDate?: string;   // ISO Date
-  datePreset?: DateRangePreset;
-  granularity?: 'daily' | 'weekly' | 'monthly';
-  courseId?: string; // Filter by specific course
-  // Add other relevant filters
-}
-
-// --- User Activity Analytics ---
-// As per `src/app/api/analytics/user-activity/route.ts`
-
-export interface UserActivityReport extends Timestamped { // Report generation time
-  queryParameters: AnalyticsQueryParameters;
-  dau: TimeSeriesDataPoint[]; // Daily Active Users
-  wau: TimeSeriesDataPoint[]; // Weekly Active Users
-  mau: TimeSeriesDataPoint[]; // Monthly Active Users
-  newUserSignups: TimeSeriesDataPoint[];
-  averageSessionDuration?: TimeSeriesDataPoint[]; // In minutes/seconds
-  topEngagingCourses?: { courseId: string; courseTitle: string; engagementScore: number }[];
-}
-
-// --- Exam Statistics Analytics ---
-// As per `src/app/api/analytics/exam-stats/route.ts`
-
-export interface ExamPerformanceMetrics {
-  courseId: string;
-  courseTitle: string;
-  totalAttempts: number;
-  passRate: number; // Percentage (0-100)
-  averageScore: number; // Percentage (0-100)
-  averageAttemptsPerUser?: number;
-  questionDifficulty?: { questionId: string, attempts: number, correctRate: number }[];
-}
-
-export interface ExamStatsReport extends Timestamped {
-  queryParameters: AnalyticsQueryParameters;
-  overallPassRate: number;
-  overallAverageScore: number;
-  coursePerformance: ExamPerformanceMetrics[];
-  commonFailurePoints?: { questionId: string; failCount: number }[];
-}
-
-// --- Revenue Analytics ---
-// As per `src/app/api/analytics/revenue/route.ts`
-
-export interface RevenueDataPoint extends TimeSeriesDataPoint {
-  // value represents revenue in cents
-}
-
-export interface RevenueReport extends Timestamped {
-  queryParameters: AnalyticsQueryParameters;
-  totalRevenue: number; // In cents
-  revenueOverTime: RevenueDataPoint[];
-  revenueByCourse?: { courseId: string; courseTitle: string; revenue: number }[];
-  newCustomers?: TimeSeriesDataPoint[];
-  averageRevenuePerUser?: number;
-  voucherSalesRevenue?: number; // Specific to exam voucher purchases
-}
-
-// --- Course Progress Analytics ---
-
-export interface CourseCompletionStats {
-  courseId: string;
-  courseTitle: string;
-  totalEnrolled: number;
-  totalCompleted: number;
-  completionRate: number; // Percentage (0-100)
-  averageCompletionTime?: number; // In days/hours (if tracked, NSBS is self-paced)
-  lessonDropOffRates?: { lessonId: string; lessonTitle: string; dropOffCount: number }[];
-}
-
-export interface ProgressAnalyticsReport extends Timestamped {
-  queryParameters: AnalyticsQueryParameters;
-  overallCompletionRate: number;
-  courseCompletionStats: CourseCompletionStats[];
-}
-// src/types/analytics.ts
-
-/**
- * Enum for different types of analytics metrics that can be queried.
- */
-export enum AnalyticsMetric {
-  USER_ACTIVITY = 'userActivity',
-  ENROLLMENT = 'enrollment',
-  EXAM_STATS = 'examStats',
-  REVENUE = 'revenue',
-  LESSON_COMPLETION = 'lessonCompletion',
-  CERTIFICATE_ISSUANCE = 'certificateIssuance',
-}
-
-/**
- * Base interface for analytics query filters.
- * These are common parameters that can be used to filter analytics data.
- */
-export interface AnalyticsQueryFilters {
-  /**
-   * Start date for the analytics time range.
-   */
-  startDate?: string;
-  
-  /**
-   * End date for the analytics time range.
-   */
-  endDate?: string;
-  
-  /**
-   * Optional course ID to filter analytics data for a specific course.
-   */
-  courseId?: string;
-  
-  /**
-   * Optional user ID to filter analytics data for a specific user.
-   */
-  userId?: string;
-  
-  /**
-   * Optional grouping parameter (e.g., 'day', 'week', 'month').
-   */
-  groupBy?: 'day' | 'week' | 'month' | 'year';
-  
-  /**
-   * Additional custom filters specific to the query.
-   */
-  [key: string]: any;
-}
-
-/**
- * Generic interface for analytics data.
- * Each specific metric type will extend this with its own data structure.
+ * Generates user activity analytics over a specified time period
  * 
- * @template T - The specific analytics metric type
+ * @param filters Query filters including date range
+ * @returns User activity analytics data
  */
-export interface AnalyticsData<T extends AnalyticsMetric> {
-  /**
-   * The type of analytics metric.
-   */
-  metric: T;
+export async function getUserActivityAnalytics(filters: AnalyticsQueryFilters) {
+  // Apply default date range if not specified
+  const startDate = filters.startDate ? new Date(filters.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
   
-  /**
-   * Timestamp when the analytics data was generated.
-   */
-  timestamp: string;
+  // Get user login activity
+  const userLogins = await prisma.session.groupBy({
+    by: ['userId'],
+    _count: {
+      id: true,
+    },
+    where: {
+      expires: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+  });
   
-  /**
-   * The time range covered by the analytics data.
-   */
-  timeRange: {
-    start: string;
-    end: string;
+  // Get new user registrations
+  const newUsers = await prisma.user.findMany({
+    where: {
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+    select: {
+      id: true,
+      createdAt: true,
+    },
+  });
+  
+  // Group new users by date
+  const newUsersByDate = newUsers.reduce((acc, user) => {
+    const dateKey = formatDate(user.createdAt, 'yyyy-MM-dd');
+    if (!acc[dateKey]) {
+      acc[dateKey] = 0;
+    }
+    acc[dateKey]++;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  // Get lesson completion activity
+  const lessonCompletions = await prisma.lessonProgress.findMany({
+    where: {
+      completedAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+    include: {
+      lesson: {
+        select: {
+          module: {
+            select: {
+              course: {
+                select: {
+                  id: true,
+                  title: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  
+  // Group lesson completions by course
+  const completionsByCourse: Record<string, { courseId: string; courseTitle: string; count: number }> = {};
+  
+  lessonCompletions.forEach(completion => {
+    const courseId = completion.lesson.module.course.id;
+    const courseTitle = completion.lesson.module.course.title;
+    
+    if (!completionsByCourse[courseId]) {
+      completionsByCourse[courseId] = {
+        courseId,
+        courseTitle,
+        count: 0,
+      };
+    }
+    
+    completionsByCourse[courseId].count++;
+  });
+  
+  // Format engagement data by course
+  const topEngagingCourses = Object.values(completionsByCourse)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map(course => ({
+      courseId: course.courseId,
+      courseTitle: course.courseTitle,
+      engagementScore: course.count,
+    }));
+  
+  // Calculate daily active users
+  const dailyActiveUsers = await getDailyActiveUsers(startDate, endDate);
+  
+  // Calculate weekly active users
+  const weeklyActiveUsers = await getWeeklyActiveUsers(startDate, endDate);
+  
+  // Calculate monthly active users
+  const monthlyActiveUsers = await getMonthlyActiveUsers(startDate, endDate);
+  
+  return {
+    metric: AnalyticsMetric.USER_ACTIVITY,
+    timestamp: new Date().toISOString(),
+    timeRange: {
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+    },
+    appliedFilters: filters,
+    dailyActiveUsers,
+    newUserSignups: Object.entries(newUsersByDate).map(([date, count]) => ({
+      date,
+      value: count,
+    })),
+    topEngagingCourses,
+    activeUserCounts: {
+      dau: dailyActiveUsers,
+      wau: weeklyActiveUsers,
+      mau: monthlyActiveUsers,
+    },
+  };
+}
+
+/**
+ * Generates exam statistics analytics
+ * 
+ * @param filters Query filters including course ID
+ * @returns Exam statistics analytics data
+ */
+export async function getExamStatsAnalytics(filters: AnalyticsQueryFilters) {
+  // Apply default date range if not specified
+  const startDate = filters.startDate ? new Date(filters.startDate) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
+  
+  // Build the database query based on filters
+  const whereClause: any = {
+    createdAt: {
+      gte: startDate,
+      lte: endDate,
+    },
   };
   
-  /**
-   * Filters applied to generate the analytics data.
-   */
-  appliedFilters: AnalyticsQueryFilters;
-}
-
-/**
- * Interface for user activity analytics data.
- */
-export interface UserActivityAnalyticsData extends AnalyticsData<AnalyticsMetric.USER_ACTIVITY> {
-  /**
-   * Daily active users data.
-   */
-  dailyActiveUsers: {
-    date: string;
-    count: number;
-  }[];
+  // Add course filter if specified
+  if (filters.courseId) {
+    whereClause.courseId = filters.courseId;
+  }
   
-  /**
-   * User engagement metrics.
-   */
-  engagement: {
-    averageSessionDuration: number;
-    averageLessonsPerSession: number;
+  // Get all exam attempts in the period
+  const examAttempts = await prisma.examAttempt.findMany({
+    where: whereClause,
+    include: {
+      course: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+  });
+  
+  // Calculate overall metrics
+  const totalAttempts = examAttempts.length;
+  const passingAttempts = examAttempts.filter(attempt => attempt.passed).length;
+  const overallPassRate = totalAttempts > 0 ? (passingAttempts / totalAttempts) * 100 : 0;
+  const totalScore = examAttempts.reduce((sum, attempt) => sum + attempt.score, 0);
+  const overallAverageScore = totalAttempts > 0 ? totalScore / totalAttempts : 0;
+  
+  // Group attempts by course
+  const attemptsByCourse: Record<string, {
+    courseId: string;
+    courseTitle: string;
+    attempts: typeof examAttempts;
+  }> = {};
+  
+  examAttempts.forEach(attempt => {
+    const courseId = attempt.courseId;
+    
+    if (!attemptsByCourse[courseId]) {
+      attemptsByCourse[courseId] = {
+        courseId,
+        courseTitle: attempt.course.title,
+        attempts: [],
+      };
+    }
+    
+    attemptsByCourse[courseId].attempts.push(attempt);
+  });
+  
+  // Calculate metrics by course
+  const coursePerformance = Object.values(attemptsByCourse).map(course => {
+    const courseAttempts = course.attempts;
+    const totalCourseAttempts = courseAttempts.length;
+    const passingCourseAttempts = courseAttempts.filter(attempt => attempt.passed).length;
+    const coursePassRate = totalCourseAttempts > 0 ? (passingCourseAttempts / totalCourseAttempts) * 100 : 0;
+    const totalCourseScore = courseAttempts.reduce((sum, attempt) => sum + attempt.score, 0);
+    const courseAverageScore = totalCourseAttempts > 0 ? totalCourseScore / totalCourseAttempts : 0;
+    
+    // Group attempts by user to calculate average attempts per user
+    const attemptsByUser: Record<string, number> = {};
+    courseAttempts.forEach(attempt => {
+      if (!attemptsByUser[attempt.userId]) {
+        attemptsByUser[attempt.userId] = 0;
+      }
+      attemptsByUser[attempt.userId]++;
+    });
+    
+    const uniqueUsers = Object.keys(attemptsByUser).length;
+    const averageAttemptsPerUser = uniqueUsers > 0 ? totalCourseAttempts / uniqueUsers : 0;
+    
+    return {
+      courseId: course.courseId,
+      courseTitle: course.courseTitle,
+      totalAttempts: totalCourseAttempts,
+      passRate: coursePassRate,
+      averageScore: courseAverageScore,
+      averageAttemptsPerUser,
+    };
+  });
+  
+  // Get most frequently missed questions
+  const questionResults = await prisma.examQuestionResult.findMany({
+    where: {
+      examAttempt: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+        ...(filters.courseId ? { courseId: filters.courseId } : {}),
+      },
+    },
+    include: {
+      question: true,
+    },
+  });
+  
+  const questionStats: Record<string, { questionId: string; attempts: number; correctCount: number }> = {};
+  
+  questionResults.forEach(result => {
+    const questionId = result.questionId;
+    
+    if (!questionStats[questionId]) {
+      questionStats[questionId] = {
+        questionId,
+        attempts: 0,
+        correctCount: 0,
+      };
+    }
+    
+    questionStats[questionId].attempts++;
+    if (result.isCorrect) {
+      questionStats[questionId].correctCount++;
+    }
+  });
+  
+  // Calculate question difficulty
+  const questionDifficulty = Object.values(questionStats).map(stat => ({
+    questionId: stat.questionId,
+    attempts: stat.attempts,
+    correctRate: stat.attempts > 0 ? (stat.correctCount / stat.attempts) * 100 : 0,
+  }));
+  
+  // Find the most challenging questions
+  const mostChallengingQuestions = [...questionDifficulty]
+    .sort((a, b) => a.correctRate - b.correctRate)
+    .slice(0, 10);
+  
+  return {
+    metric: AnalyticsMetric.EXAM_STATS,
+    timestamp: new Date().toISOString(),
+    timeRange: {
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+    },
+    appliedFilters: filters,
+    overallPassRate,
+    overallAverageScore,
+    totalAttempts,
+    coursePerformance,
+    challengingQuestions: mostChallengingQuestions.map(q => ({
+      questionId: q.questionId,
+      failureRate: 100 - q.correctRate,
+    })),
   };
-  
-  /**
-   * Total user count.
-   */
-  totalUsers: number;
-  
-  /**
-   * New user registrations.
-   */
-  newUsers: {
-    date: string;
-    count: number;
-  }[];
 }
 
 /**
- * Interface for enrollment analytics data.
+ * Generates revenue analytics
+ * 
+ * @param filters Query filters
+ * @returns Revenue analytics data
  */
-export interface EnrollmentAnalyticsData extends AnalyticsData<AnalyticsMetric.ENROLLMENT> {
-  /**
-   * Total enrollment count.
-   */
-  totalEnrollments: number;
+export async function getRevenueAnalytics(filters: AnalyticsQueryFilters) {
+  // Apply default date range if not specified
+  const startDate = filters.startDate ? new Date(filters.startDate) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
   
-  /**
-   * New enrollments over time.
-   */
-  newEnrollments: {
-    date: string;
-    count: number;
-  }[];
+  // Get all payments in the period
+  const payments = await prisma.payment.findMany({
+    where: {
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+    include: {
+      course: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+  });
   
-  /**
-   * Course popularity metrics.
-   */
-  coursesPopularity: {
-    courseId: string;
-    courseTitle: string;
-    enrollmentCount: number;
-    percentage: number;
-  }[];
+  // Calculate total revenue
+  const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
   
-  /**
-   * Conversion rate from views to enrollments.
-   */
-  conversionRate: number;
+  // Group payments by date
+  const paymentsByDate: Record<string, number> = {};
+  
+  payments.forEach(payment => {
+    const dateKey = formatDate(payment.createdAt, 'yyyy-MM-dd');
+    if (!paymentsByDate[dateKey]) {
+      paymentsByDate[dateKey] = 0;
+    }
+    paymentsByDate[dateKey] += payment.amount;
+  });
+  
+  // Format revenue over time
+  const revenueOverTime = Object.entries(paymentsByDate).map(([date, amount]) => ({
+    date,
+    value: amount,
+  }));
+  
+  // Group payments by course
+  const revenueByCourse: Record<string, { courseId: string; courseTitle: string; revenue: number }> = {};
+  
+  payments.forEach(payment => {
+    if (payment.courseId) {
+      const courseId = payment.courseId;
+      
+      if (!revenueByCourse[courseId]) {
+        revenueByCourse[courseId] = {
+          courseId,
+          courseTitle: payment.course?.title || 'Unknown Course',
+          revenue: 0,
+        };
+      }
+      
+      revenueByCourse[courseId].revenue += payment.amount;
+    }
+  });
+  
+  // Format revenue by course
+  const formattedRevenueByCourse = Object.values(revenueByCourse)
+    .sort((a, b) => b.revenue - a.revenue);
+  
+  // Group payments by type
+  const coursePayments = payments.filter(p => p.type === 'COURSE_PURCHASE');
+  const voucherPayments = payments.filter(p => p.type === 'EXAM_VOUCHER');
+  
+  const courseRevenue = coursePayments.reduce((sum, p) => sum + p.amount, 0);
+  const voucherRevenue = voucherPayments.reduce((sum, p) => sum + p.amount, 0);
+  
+  // Count unique customers
+  const uniqueCustomers = new Set(payments.map(p => p.userId)).size;
+  
+  // Calculate average revenue per user
+  const averageRevenuePerUser = uniqueCustomers > 0 ? totalRevenue / uniqueCustomers : 0;
+  
+  // Track new customers over time
+  const customerFirstPurchase: Record<string, Date> = {};
+  
+  payments.forEach(payment => {
+    const userId = payment.userId;
+    const purchaseDate = payment.createdAt;
+    
+    if (!customerFirstPurchase[userId] || purchaseDate < customerFirstPurchase[userId]) {
+      customerFirstPurchase[userId] = purchaseDate;
+    }
+  });
+  
+  // Group new customers by date
+  const newCustomersByDate: Record<string, number> = {};
+  
+  Object.entries(customerFirstPurchase).forEach(([userId, date]) => {
+    if (date >= startDate && date <= endDate) {
+      const dateKey = formatDate(date, 'yyyy-MM-dd');
+      if (!newCustomersByDate[dateKey]) {
+        newCustomersByDate[dateKey] = 0;
+      }
+      newCustomersByDate[dateKey]++;
+    }
+  });
+  
+  // Format new customers over time
+  const newCustomers = Object.entries(newCustomersByDate).map(([date, count]) => ({
+    date,
+    value: count,
+  }));
+  
+  return {
+    metric: AnalyticsMetric.REVENUE,
+    timestamp: new Date().toISOString(),
+    timeRange: {
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+    },
+    appliedFilters: filters,
+    totalRevenue,
+    revenueOverTime,
+    revenueByCourse: formattedRevenueByCourse,
+    revenueByType: [
+      { type: 'course_purchase', amount: courseRevenue, percentage: (courseRevenue / totalRevenue) * 100 },
+      { type: 'exam_voucher', amount: voucherRevenue, percentage: (voucherRevenue / totalRevenue) * 100 },
+    ],
+    newCustomers,
+    averageRevenuePerUser,
+    voucherSalesRevenue: voucherRevenue,
+  };
+}
+
+// --- Helper Functions ---
+
+/**
+ * Gets daily active users for a date range
+ */
+async function getDailyActiveUsers(startDate: Date, endDate: Date) {
+  // This is a simplified implementation - in production, you would need
+  // more sophisticated tracking of user activity beyond just sessions
+  
+  // Get active sessions by day
+  const dailyActiveSessions = await prisma.$queryRaw<{ date: string; users: number }[]>`
+    SELECT 
+      DATE(session."createdAt") as date,
+      COUNT(DISTINCT session."userId") as users
+    FROM "Session" session
+    WHERE session."createdAt" >= ${startDate} AND session."createdAt" <= ${endDate}
+    GROUP BY DATE(session."createdAt")
+    ORDER BY date
+  `;
+  
+  return dailyActiveSessions.map(day => ({
+    date: day.date,
+    value: Number(day.users),
+  }));
 }
 
 /**
- * Interface for exam statistics analytics data.
+ * Gets weekly active users for a date range
  */
-export interface ExamStatsAnalyticsData extends AnalyticsData<AnalyticsMetric.EXAM_STATS> {
-  /**
-   * Average exam score.
-   */
-  averageScore: number;
+async function getWeeklyActiveUsers(startDate: Date, endDate: Date) {
+  // Get active sessions by week
+  const weeklyActiveSessions = await prisma.$queryRaw<{ week: string; users: number }[]>`
+    SELECT 
+      DATE_TRUNC('week', session."createdAt") as week,
+      COUNT(DISTINCT session."userId") as users
+    FROM "Session" session
+    WHERE session."createdAt" >= ${startDate} AND session."createdAt" <= ${endDate}
+    GROUP BY DATE_TRUNC('week', session."createdAt")
+    ORDER BY week
+  `;
   
-  /**
-   * Passing rate for exams.
-   */
-  passRate: number;
-  
-  /**
-   * Distribution of exam scores.
-   */
-  scoreDistribution: {
-    range: string;
-    count: number;
-    percentage: number;
-  }[];
-  
-  /**
-   * Average number of attempts per user.
-   */
-  averageAttempts: number;
-  
-  /**
-   * Questions with highest failure rates.
-   */
-  challengingQuestions: {
-    questionId: string;
-    failureRate: number;
-  }[];
+  return weeklyActiveSessions.map(week => ({
+    date: formatDate(week.week, 'yyyy-MM-dd'),
+    value: Number(week.users),
+  }));
 }
 
 /**
- * Interface for revenue analytics data.
+ * Gets monthly active users for a date range
  */
-export interface RevenueAnalyticsData extends AnalyticsData<AnalyticsMetric.REVENUE> {
-  /**
-   * Total revenue.
-   */
-  totalRevenue: number;
+async function getMonthlyActiveUsers(startDate: Date, endDate: Date) {
+  // Get active sessions by month
+  const monthlyActiveSessions = await prisma.$queryRaw<{ month: string; users: number }[]>`
+    SELECT 
+      DATE_TRUNC('month', session."createdAt") as month,
+      COUNT(DISTINCT session."userId") as users
+    FROM "Session" session
+    WHERE session."createdAt" >= ${startDate} AND session."createdAt" <= ${endDate}
+    GROUP BY DATE_TRUNC('month', session."createdAt")
+    ORDER BY month
+  `;
   
-  /**
-   * Revenue over time.
-   */
-  revenueByPeriod: {
-    period: string;
-    amount: number;
-  }[];
-  
-  /**
-   * Revenue breakdown by course.
-   */
-  revenueByCourse: {
-    courseId: string;
-    courseTitle: string;
-    amount: number;
-    percentage: number;
-  }[];
-  
-  /**
-   * Revenue breakdown by transaction type.
-   */
-  revenueByType: {
-    type: 'course_purchase' | 'exam_voucher';
-    amount: number;
-    percentage: number;
-  }[];
-  
-  /**
-   * Average transaction value.
-   */
-  averageTransactionValue: number;
-}
-
-/**
- * Interface for lesson completion analytics data.
- */
-export interface LessonCompletionAnalyticsData extends AnalyticsData<AnalyticsMetric.LESSON_COMPLETION> {
-  /**
-   * Overall completion rate.
-   */
-  overallCompletionRate: number;
-  
-  /**
-   * Completion rates by course.
-   */
-  completionByCourse: {
-    courseId: string;
-    courseTitle: string;
-    completionRate: number;
-  }[];
-  
-  /**
-   * Average time spent per lesson.
-   */
-  averageTimePerLesson: number;
-  
-  /**
-   * Lessons with lowest completion rates.
-   */
-  lowCompletionLessons: {
-    lessonId: string;
-    lessonTitle: string;
-    moduleId: string;
-    moduleTitle: string;
-    courseId: string;
-    courseTitle: string;
-    completionRate: number;
-  }[];
-  
-  /**
-   * User progress distribution.
-   */
-  progressDistribution: {
-    range: string;
-    count: number;
-    percentage: number;
-  }[];
-}
-
-/**
- * Interface for certificate issuance analytics data.
- */
-export interface CertificateIssuanceAnalyticsData extends AnalyticsData<AnalyticsMetric.CERTIFICATE_ISSUANCE> {
-  /**
-   * Total certificates issued.
-   */
-  totalCertificates: number;
-  
-  /**
-   * Certificate issuance over time.
-   */
-  issuanceByPeriod: {
-    period: string;
-    count: number;
-  }[];
-  
-  /**
-   * Certificate issuance by course.
-   */
-  issuanceByCourse: {
-    courseId: string;
-    courseTitle: string;
-    count: number;
-    percentage: number;
-  }[];
-  
-  /**
-   * Average time from enrollment to certification.
-   */
-  averageTimeToCompletion: number;
-  
-  /**
-   * Certification success rate (enrollments that lead to certification).
-   */
-  certificationRate: number;
+  return monthlyActiveSessions.map(month => ({
+    date: formatDate(month.month, 'yyyy-MM-dd'),
+    value: Number(month.users),
+  }));
 }
 
 /* Developed by Luccas A E | 2025 */

@@ -1,0 +1,208 @@
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Better Auth Models
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          UserRole  @default(USER)
+
+  accounts      Account[]
+  sessions      Session[]
+  enrollments   Enrollment[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Application Models
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Course {
+  id            String   @id @default(cuid())
+  title         String
+  description   String   @db.Text
+  courseAcronym String   @unique
+  price         Int      // Stored in cents
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  moduleCount   Int      @default(0)
+  lessonCount   Int      @default(0)
+
+  modules     Module[]
+  enrollments Enrollment[]
+  exams       ExamQuestion[]
+}
+
+model Module {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?  @db.Text
+  moduleNumber Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons      Lesson[]
+
+  @@unique([courseId, moduleNumber])
+  @@index([courseId])
+}
+
+model Lesson {
+  id           String   @id @default(cuid())
+  title        String
+  overview     String   @db.Text
+  content      String   @db.Text
+  keywords     String[] @default([])
+  lessonNumber Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  moduleId        String
+  module          Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  courseId        String
+  course          Course            @relation(fields: [courseId], references: [id])
+  lessonProgress  LessonProgress[]
+
+  @@unique([moduleId, lessonNumber])
+  @@index([moduleId])
+  @@index([courseId])
+}
+
+model Enrollment {
+  id             String   @id @default(cuid())
+  enrolledAt     DateTime @default(now())
+  lastAccessedAt DateTime @default(now())
+
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonProgress LessonProgress[]
+  examAttempts   ExamAttempt[]
+  certificate    Certificate?
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  completedAt DateTime @default(now())
+
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lessonId     String
+  lesson       Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@index([lessonId])
+}
+
+model ExamQuestion {
+  id             String   @id @default(cuid())
+  questionText   String   @db.Text
+  optionA        String
+  optionB        String
+  optionC        String
+  optionD        String
+  correctOption  String   // "A", "B", "C", or "D"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  courseId       String
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  examAnswers    ExamAnswer[]
+
+  @@index([courseId])
+}
+
+model ExamAttempt {
+  id             String   @id @default(cuid())
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  score          Int?
+  isPassed       Boolean? // true if score >= 80
+  isPurchased    Boolean  @default(false) // true if this is an additional purchased attempt
+
+  enrollmentId   String
+  enrollment     Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  examAnswers    ExamAnswer[]
+
+  @@index([enrollmentId])
+}
+
+model ExamAnswer {
+  id             String   @id @default(cuid())
+  selectedOption String   // "A", "B", "C", or "D"
+  isCorrect      Boolean
+
+  examAttemptId  String
+  examAttempt    ExamAttempt  @relation(fields: [examAttemptId], references: [id], onDelete: Cascade)
+  questionId     String
+  question       ExamQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([examAttemptId, questionId])
+  @@index([examAttemptId])
+  @@index([questionId])
+}
+
+model Certificate {
+  id             String   @id @default(cuid())
+  certificateId  String   @unique // Unique identifier shown on certificate
+  issuedAt       DateTime @default(now())
+  
+  enrollmentId   String   @unique
+  enrollment     Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([enrollmentId])
+}
