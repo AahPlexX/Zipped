@@ -1,0 +1,960 @@
+# Comprehensive NSBS Platform File Structure (259 Files)
+
+This document provides a complete, production-ready file structure for the NSBS platform, integrating Better Auth and addressing all technical requirements. Each file includes a detailed explanation of its purpose, responsibilities, and connections to the overall system architecture.
+
+## 1. Root Configuration (15 files)
+
+### Core Configuration
+- **`.env.local`**
+  - Environment variables for authentication, database, and external services
+  - Contains credentials for Better Auth, Stripe, database connection strings
+  - **Critical security**: Must be in `.gitignore`, never committed to version control
+
+- **`.env.example`**
+  - Template showing required environment variables without actual values
+  - Committed to version control for documentation and onboarding purposes
+
+- **`package.json`**
+  - Project manifest defining dependencies, scripts, and metadata
+  - Includes all required packages: Next.js 15.3.1+, React 19.1.0+, TypeScript 5.8.2+, Prisma, Better Auth, etc.
+  - Contains scripts for development, building, testing, and database management
+
+- **`tsconfig.json`**
+  - TypeScript compiler configuration with strict type checking
+  - Path aliases configuration (`@/*` mapping to `./src/*`)
+  - Module resolution and target ECMAScript version settings
+
+- **`next.config.mjs`**
+  - Next.js framework configuration
+  - Defines redirects, rewrites, image optimization settings
+  - Environment variable exposure rules and experimental feature flags
+
+- **`tailwind.config.ts`**
+  - Tailwind CSS configuration with custom color palette (mattes, black, gray, slate, tan, white)
+  - shadcn/ui theming setup with defined CSS variables
+  - Content paths for Tailwind scanning (`./src/**/*.{ts,tsx}`)
+
+- **`postcss.config.js`**
+  - PostCSS configuration for Tailwind CSS processing
+  - Includes autoprefixer for cross-browser compatibility
+
+### Development Tooling
+- **`.prettierrc.js`**
+  - Prettier configuration for consistent code formatting
+  - Rules for quotes, semicolons, trailing commas, etc.
+
+- **`.prettierignore`**
+  - Files/directories to exclude from Prettier formatting
+  - Typically includes `.next`, `node_modules`, `build` directories
+
+- **`.eslintrc.json`**
+  - ESLint configuration for code quality enforcement
+  - Extends Next.js recommended rules and TypeScript settings
+
+- **`.eslintignore`**
+  - Files/directories to exclude from ESLint checks
+  - Similar to `.prettierignore` but specifically for linting
+
+- **`jest.config.js`**
+  - Jest testing framework configuration
+  - Module mapping and test environment settings
+
+### Deployment Configuration
+- **`docker-compose.yml`**
+  - Docker Compose configuration for local development
+  - Defines services: database, potentially Redis, application
+
+- **`Dockerfile`**
+  - Container definition for production deployment
+  - Multi-stage build process for optimal image size and security
+
+- **`README.md`**
+  - Project documentation with setup instructions, architecture overview
+  - Details on environment variables, development workflow, and production deployment
+
+## 2. Prisma Database (3 files)
+
+- **`prisma/schema.prisma`**
+  - Database schema definition with all models:
+    - User, Account, Session (for Better Auth)
+    - Course, Module, Lesson (for educational content)
+    - Enrollment, LessonProgress, ExamAttempt, Certificate (for user progress)
+  - Relationship definitions between models with appropriate indices
+  - Provider configuration for Supabase/PostgreSQL
+
+- **`prisma/seed.ts`**
+  - Database seeding script for initial course content
+  - Imports course data from `src/data/courses/*` and creates records
+  - Generated via `npx prisma db seed` command
+
+- **`prisma/migrations/.gitkeep`**
+  - Placeholder to ensure migrations directory is created
+  - Actual migration files will be generated with `prisma migrate dev`
+
+## 3. Next.js App Structure (47 files)
+
+### Root App Files
+- **`src/app/layout.tsx`**
+  - Root layout with HTML/body structure and global providers
+  - Imports `Providers.tsx` for context providers (Better Auth, React Query, Theme)
+  - Sets up metadata and global styles
+
+- **`src/app/page.tsx`**
+  - Homepage component (public landing page)
+  - Marketing content and course showcases
+  - Login/Register calls to action
+
+- **`src/app/globals.css`**
+  - Global CSS including Tailwind directives
+  - Theme color variables and base styles
+  - Custom utility classes and resets
+
+- **`src/app/favicon.ico`**
+  - Site favicon displayed in browser tabs
+
+### Authentication Pages
+- **`src/app/(auth)/layout.tsx`**
+  - Layout specific to authentication pages
+  - Minimal structure without main navigation
+  - Centered content with NSBS branding
+
+- **`src/app/(auth)/login/page.tsx`**
+  - Login page component
+  - Renders `LoginForm.tsx` for credential entry
+  - Social login options via Better Auth
+
+- **`src/app/(auth)/register/page.tsx`**
+  - Registration page component
+  - Renders `RegisterForm.tsx` for new account creation
+  - Email verification flow initiation
+
+- **`src/app/(auth)/password-reset/page.tsx`**
+  - Password reset request page
+  - Renders `PasswordResetRequestForm.tsx`
+  - Email input for password reset link
+
+- **`src/app/(auth)/password-reset/[token]/page.tsx`**
+  - Token-based password reset page
+  - Renders `PasswordResetConfirmForm.tsx`
+  - New password entry and confirmation
+
+### Main Application Pages
+- **`src/app/(main)/layout.tsx`**
+  - Authenticated application layout
+  - Better Auth session verification
+  - Header, footer, and navigation components
+
+- **`src/app/(main)/dashboard/page.tsx`**
+  - User dashboard showing enrolled courses
+  - Progress indicators and certificate access
+  - Enrollment date and completion status
+
+- **`src/app/(main)/courses/page.tsx`**
+  - Course catalog listing all available courses
+  - Renders `CourseCard.tsx` components
+  - Purchase buttons and filtering options
+
+- **`src/app/(main)/courses/[courseId]/view/layout.tsx`**
+  - Course-specific layout for enrolled courses
+  - Renders `CourseSidebar.tsx` with module/lesson navigation
+  - Verifies user enrollment for access control
+
+- **`src/app/(main)/courses/[courseId]/view/page.tsx`**
+  - Default course landing page
+  - Redirects to first or last viewed lesson
+  - Course introduction and overview
+
+- **`src/app/(main)/courses/[courseId]/view/lesson/[lessonId]/page.tsx`**
+  - Individual lesson content page
+  - Renders `LessonDisplay.tsx` with lesson content
+  - "Mark Complete" functionality
+
+- **`src/app/(main)/courses/[courseId]/view/exam/page.tsx`**
+  - Final exam interface
+  - Prerequisite verification (all lessons completed)
+  - Question display and answer submission
+
+- **`src/app/(main)/purchase/[courseId]/page.tsx`**
+  - Course purchase page
+  - Course details confirmation
+  - Stripe Checkout session creation
+
+- **`src/app/(main)/purchase/success/page.tsx`**
+  - Successful purchase confirmation
+  - Enrollment status and next steps
+  - Link to access purchased course
+
+- **`src/app/(main)/purchase/cancel/page.tsx`**
+  - Cancelled purchase page
+  - Return to course catalog options
+  - Support information if needed
+
+- **`src/app/(main)/profile/page.tsx`**
+  - User profile management
+  - Personal information update
+  - Account settings and preferences
+
+- **`src/app/(main)/certificates/page.tsx`**
+  - User's earned certificates listing
+  - Download options for all certificates
+  - Certificate issue dates and course details
+
+### Admin Pages
+- **`src/app/(admin)/layout.tsx`**
+  - Admin-specific layout with specialized navigation
+  - Role-based access control verification
+  - Admin sidebar and header components
+
+- **`src/app/(admin)/dashboard/page.tsx`**
+  - Admin dashboard with platform metrics
+  - User statistics and revenue reports
+  - Quick access to admin functions
+
+- **`src/app/(admin)/users/page.tsx`**
+  - User management interface
+  - User listing with search and filtering
+  - Account actions (view, edit, disable)
+
+- **`src/app/(admin)/courses/page.tsx`**
+  - Course management overview
+  - Course creation and editing options
+  - Enrollment and performance metrics
+
+- **`src/app/(admin)/courses/[courseId]/edit/page.tsx`**
+  - Course content editor
+  - Module and lesson management
+  - Content publishing workflow
+
+### API Routes
+- **`src/app/api/auth/[...better-auth]/route.ts`**
+  - Better Auth API route handler
+  - Handles all authentication flows
+  - Delegated to Better Auth library for processing
+
+- **`src/app/api/webhooks/better-auth/route.ts`**
+  - Better Auth webhook handler for events
+  - Syncs user data with database on auth events
+  - Handles user creation and updates
+
+- **`src/app/api/courses/route.ts`**
+  - Course listing API endpoint
+  - Returns available courses with filtering
+  - Public access for course catalog
+
+- **`src/app/api/courses/[courseId]/route.ts`**
+  - Single course details API
+  - Returns course structure and metadata
+  - Authentication and enrollment verification
+
+- **`src/app/api/lessons/[lessonId]/route.ts`**
+  - Lesson content API endpoint
+  - Returns lesson details including content
+  - Authentication and enrollment verification
+
+- **`src/app/api/progress/complete/route.ts`**
+  - Lesson completion endpoint
+  - Creates LessonProgress records
+  - Validates user enrollment before marking complete
+
+- **`src/app/api/progress/[enrollmentId]/route.ts`**
+  - Progress tracking endpoint
+  - Returns completion status for an enrollment
+  - Used for progress bars and exam eligibility
+
+- **`src/app/api/payments/create-checkout-session/route.ts`**
+  - Stripe Checkout session creation
+  - Sets up payment for course purchase
+  - Returns session ID for client-side redirect
+
+- **`src/app/api/payments/webhook/route.ts`**
+  - Stripe webhook handler
+  - Processes successful payments
+  - Creates Enrollment records on purchase
+
+- **`src/app/api/payments/create-voucher-purchase-session/route.ts`**
+  - Additional exam voucher purchase
+  - Creates Stripe Checkout for $149 voucher
+  - Validates eligibility (failed previous attempts)
+
+- **`src/app/api/exam/start/[enrollmentId]/route.ts`**
+  - Exam initialization endpoint
+  - Validates completion of all lessons
+  - Returns randomized questions for the exam
+
+- **`src/app/api/exam/submit/[attemptId]/route.ts`**
+  - Exam submission handler
+  - Grades answers and calculates score
+  - Creates Certificate on passing (≥80%)
+
+- **`src/app/api/certificate/[courseId]/route.ts`**
+  - Certificate generation endpoint
+  - Creates PDF certificate document
+  - Returns downloadable certificate file
+
+- **`src/app/api/analytics/user-activity/route.ts`**
+  - User activity analytics endpoint
+  - Returns aggregated user engagement data
+  - Used for admin dashboards
+
+- **`src/app/api/analytics/exam-stats/route.ts`**
+  - Exam statistics endpoint
+  - Returns pass rates and attempt metrics
+  - Used for course performance analysis
+
+- **`src/app/api/analytics/revenue/route.ts`**
+  - Revenue analytics endpoint
+  - Returns course purchase metrics
+  - Used for financial reporting
+
+## 4. Components (84 files)
+
+### UI Primitives (shadcn/ui)
+- **`src/components/ui/button.tsx`**
+  - Reusable button component with variants
+  - Accessible with proper ARIA attributes
+  - Multiple states: primary, secondary, outline, destructive
+
+- **`src/components/ui/card.tsx`**
+  - Card container with header, content, footer subcomponents
+  - Consistent styling for content blocks
+  - Shadow and border styling options
+
+- **`src/components/ui/input.tsx`**
+  - Form input component with validation states
+  - Label integration and error handling
+  - Consistent styling with other form elements
+
+- **`src/components/ui/dialog.tsx`**
+  - Modal dialog component for confirmations
+  - Focus management for accessibility
+  - Backdrop and animation handling
+
+- **`src/components/ui/alert.tsx`**
+  - Notification component for user feedback
+  - Multiple variants: info, success, warning, error
+  - Dismissible option with close button
+
+- **`src/components/ui/progress.tsx`**
+  - Progress indicator for completion tracking
+  - Accessible with ARIA attributes
+  - Configurable appearance and animation
+
+- **`src/components/ui/dropdown-menu.tsx`**
+  - Hierarchical menu component
+  - Keyboard navigation support
+  - Submenus and dividers
+
+- **`src/components/ui/skeleton.tsx`**
+  - Loading placeholder component
+  - Pulse animation for content loading
+  - Configurable dimensions
+
+- **`src/components/ui/label.tsx`**
+  - Accessible form label component
+  - Associates with form controls via htmlFor
+  - Consistent styling with form elements
+
+- **`src/components/ui/separator.tsx`**
+  - Horizontal or vertical divider
+  - Configurable margin and color
+  - Semantic HTML with appropriate ARIA roles
+
+- **`src/components/ui/collapsible.tsx`**
+  - Expandable/collapsible content section
+  - Animation for smooth transitions
+  - Accessible with ARIA expanded state
+
+- **`src/components/ui/scroll-area.tsx`**
+  - Custom scrollable container
+  - Styled scrollbars with cross-browser support
+  - Maintains native scrolling behavior
+
+- **`src/components/ui/form.tsx`**
+  - Form component with validation integration
+  - Error message display and field grouping
+  - React Hook Form integration
+
+- **`src/components/ui/sheet.tsx`**
+  - Slide-in panel component
+  - Multiple positions: top, right, bottom, left
+  - Focus trapping for accessibility
+
+- **`src/components/ui/toast.tsx`**
+  - Notification toast component
+  - Auto-dismissing with configurable duration
+  - Multiple positions and variants
+
+- **`src/components/ui/toaster.tsx`**
+  - Toast container and management
+  - Handles multiple concurrent toasts
+  - Animation and positioning logic
+
+### Core Components
+- **`src/components/core/Header.tsx`**
+  - Main application header
+  - Responsive navigation with mobile menu
+  - User profile dropdown integration
+
+- **`src/components/core/Footer.tsx`**
+  - Site footer with copyright and links
+  - Responsive layout for all screen sizes
+  - Optional newsletter signup or social links
+
+- **`src/components/core/UserNav.tsx`**
+  - User navigation component in header
+  - Profile dropdown with links
+  - Authentication status awareness
+
+- **`src/components/core/CourseCard.tsx`**
+  - Course display card for catalog
+  - Shows title, description, price
+  - Purchase or view button based on enrollment
+
+- **`src/components/core/Logo.tsx`**
+  - NSBS logo component
+  - SVG with appropriate alt text
+  - Link to homepage
+
+- **`src/components/core/ThemeProvider.tsx`**
+  - Theme context provider
+  - Dark mode implementation
+  - Theme persistence in localStorage
+
+- **`src/components/core/Providers.tsx`**
+  - Global providers wrapper
+  - Better Auth, React Query, Theme providers
+  - Used in root layout
+
+- **`src/components/core/AdminSidebar.tsx`**
+  - Admin navigation sidebar
+  - Section organization with icons
+  - Collapsible on mobile
+
+- **`src/components/core/EmptyState.tsx`**
+  - Empty data presentation component
+  - Customizable illustration and message
+  - Optional action button
+
+- **`src/components/core/Breadcrumbs.tsx`**
+  - Navigation breadcrumbs component
+  - Dynamic path generation
+  - Accessibility with ARIA attributes
+
+- **`src/components/core/PageHeader.tsx`**
+  - Consistent page header layout
+  - Title, description, and actions area
+  - Used across admin and main sections
+
+- **`src/components/core/DataTable.tsx`**
+  - Reusable data table component
+  - Sorting, filtering, and pagination
+  - Responsive design with column prioritization
+
+- **`src/components/core/Pagination.tsx`**
+  - Page navigation component
+  - Used with DataTable and listings
+  - Accessible navigation controls
+
+- **`src/components/core/SearchInput.tsx`**
+  - Search field with clear button
+  - Debounced input for performance
+  - Integration with filtering systems
+
+### Auth Components
+- **`src/components/features/auth/LoginForm.tsx`**
+  - Email/password login form
+  - Better Auth integration
+  - Error handling and validation
+
+- **`src/components/features/auth/RegisterForm.tsx`**
+  - New user registration form
+  - Email verification integration
+  - Password requirements validation
+
+- **`src/components/features/auth/PasswordResetRequestForm.tsx`**
+  - Form to request password reset email
+  - Email validation and submission
+  - Success/error state handling
+
+- **`src/components/features/auth/PasswordResetConfirmForm.tsx`**
+  - New password entry form
+  - Password strength validation
+  - Token verification and submission
+
+- **`src/components/features/auth/SocialSignInButton.tsx`**
+  - Button for social provider authentication
+  - Customizable for different providers
+  - Loading state handling
+
+- **`src/components/features/auth/MagicLinkForm.tsx`**
+  - Passwordless email login form
+  - Magic link generation via Better Auth
+  - Success state with instructions
+
+### Dashboard Components
+- **`src/components/features/dashboard/EnrolledCourseItem.tsx`**
+  - Enrolled course card for dashboard
+  - Progress indicator and completion status
+  - Continue learning button
+
+- **`src/components/features/dashboard/RevenueDashboard.tsx`**
+  - Admin revenue overview component
+  - Charts for financial metrics
+  - Time period selection controls
+
+- **`src/components/features/dashboard/EmptyCourseState.tsx`**
+  - Component shown when no enrollments exist
+  - Course catalog promotion
+  - First purchase guidance
+
+### Analytics Components
+- **`src/components/features/analytics/UserActivityChart.tsx`**
+  - User engagement visualization
+  - Daily/weekly/monthly activity graphs
+  - Filter controls for date ranges
+
+- **`src/components/features/analytics/ExamPassRateChart.tsx`**
+  - Exam performance visualization
+  - Pass/fail distribution by course
+  - Average score metrics
+
+- **`src/components/features/analytics/ProgressTracker.tsx`**
+  - Course completion visualization
+  - Module-by-module progress tracking
+  - Comparative metrics
+
+- **`src/components/features/analytics/RevenueChart.tsx`**
+  - Financial performance visualization
+  - Course revenue comparison
+  - Trend analysis over time
+
+### Course Components
+- **`src/components/features/courses/CourseSidebar.tsx`**
+  - Course navigation sidebar
+  - Module and lesson hierarchy
+  - Completion status indicators
+
+- **`src/components/features/courses/LessonDisplay.tsx`**
+  - Lesson content rendering component
+  - Markdown/HTML content display
+  - Typography and formatting
+
+- **`src/components/features/courses/MarkCompleteButton.tsx`**
+  - Button to mark lesson as complete
+  - Confirmation dialog integration
+  - API call and state update
+
+- **`src/components/features/courses/ModuleList.tsx`**
+  - Collapsible module listing
+  - Lesson links with completion status
+  - Progress percentage calculation
+
+- **`src/components/features/courses/CourseHeader.tsx`**
+  - Course title and navigation header
+  - Progress summary
+  - Actions menu (certificate, settings)
+
+- **`src/components/features/courses/CourseProgressBar.tsx`**
+  - Overall course progress visualization
+  - Percentage complete calculation
+  - Module breakdown option
+
+### Exam Components
+- **`src/components/features/exam/ExamInterface.tsx`**
+  - Main exam taking interface
+  - Question navigation and submission
+  - Timer integration if applicable
+
+- **`src/components/features/exam/ExamQuestion.tsx`**
+  - Individual question display
+  - Multiple choice option rendering
+  - Selection state management
+
+- **`src/components/features/exam/ExamResult.tsx`**
+  - Exam results display
+  - Pass/fail status with score
+  - Certificate download or retry options
+
+- **`src/components/features/exam/PurchaseVoucherButton.tsx`**
+  - Additional exam attempt purchase button
+  - Stripe Checkout integration
+  - Eligibility verification
+
+- **`src/components/features/exam/ExamEligibilityCheck.tsx`**
+  - Pre-exam requirements verification
+  - All lessons completed status
+  - Remaining attempts count
+
+- **`src/components/features/exam/QuestionNavigation.tsx`**
+  - Exam question navigation interface
+  - Question status indicators
+  - Jump-to-question functionality
+
+### Certificate Components
+- **`src/components/features/certificate/CertificateDownloadButton.tsx`**
+  - Button to download certificate PDF
+  - API request to generate certificate
+  - Loading and error states
+
+- **`src/components/features/certificate/CertificatePreview.tsx`**
+  - Certificate visual preview
+  - Shows name, course, date, ID
+  - Scaled representation of PDF
+
+- **`src/components/features/certificate/CertificatesList.tsx`**
+  - List of earned certificates
+  - Sorting and filtering options
+  - Download actions for each certificate
+
+### Admin Components
+- **`src/components/features/admin/UserTable.tsx`**
+  - Admin user management table
+  - Sorting, filtering, pagination
+  - User action buttons (edit, disable)
+
+- **`src/components/features/admin/CourseEditor.tsx`**
+  - Course content management interface
+  - Module and lesson editing
+  - Content saving and publishing
+
+- **`src/components/features/admin/CourseForm.tsx`**
+  - Course creation/editing form
+  - Title, description, price fields
+  - Validation and submission handling
+
+- **`src/components/features/admin/ModuleEditor.tsx`**
+  - Module management component
+  - Title editing and lesson reordering
+  - Nested within CourseEditor
+
+- **`src/components/features/admin/LessonEditor.tsx`**
+  - Lesson content editing component
+  - Rich text editor integration
+  - Metadata and keyword management
+
+- **`src/components/features/admin/UserForm.tsx`**
+  - User creation/editing form
+  - Role assignment and profile fields
+  - Password management options
+
+## 5. Library and Utilities (24 files)
+
+### Authentication
+- **`src/lib/auth.ts`**
+  - Better Auth server-side configuration
+  - Database adapter and plugin setup
+  - Session and callback configuration
+
+- **`src/lib/auth-client.ts`**
+  - Better Auth client-side configuration
+  - Hook and method exports for components
+  - Plugin initialization (magic links, etc.)
+
+- **`src/lib/userSync.ts`**
+  - Synchronization between Better Auth and database
+  - User record creation and updating
+  - Role management logic
+
+### Database
+- **`src/lib/prisma.ts`**
+  - Prisma client singleton instance
+  - Database connection management
+  - Used by API routes for database access
+
+### Payment Processing
+- **`src/lib/stripe.ts`**
+  - Stripe SDK initialization
+  - Helper functions for payment processing
+  - Webhook verification utilities
+
+### Core Utilities
+- **`src/lib/utils.ts`**
+  - General utility functions
+  - Class name merging (cn function)
+  - Common data transformations
+
+- **`src/lib/dates.ts`**
+  - Date formatting and manipulation
+  - Timezone handling
+  - Relative time calculations
+
+- **`src/lib/validations.ts`**
+  - Zod validation schemas
+  - Form input validation
+  - API request/response validation
+
+- **`src/lib/store.ts`**
+  - Zustand store configuration
+  - Global state management
+  - Action definitions
+
+- **`src/lib/pdfGenerator.ts`**
+  - Certificate PDF generation
+  - Dynamic content rendering
+  - Branding and layout definition
+
+- **`src/lib/apiClient.ts`**
+  - Fetch wrapper for API calls
+  - Request/response handling
+  - Authentication header management
+
+- **`src/lib/metadata.ts`**
+  - Next.js metadata generation
+  - Dynamic title and description
+  - Open Graph and Twitter card setup
+
+- **`src/lib/rbac.ts`**
+  - Role-based access control
+  - Permission checking functions
+  - Role definition and mapping
+
+- **`src/lib/editor.ts`**
+  - Rich text editor configuration
+  - Content sanitization
+  - Upload integration
+
+### Analytics and Reporting
+- **`src/lib/analytics.ts`**
+  - Data aggregation and analysis
+  - Metrics calculation
+  - Report generation utilities
+
+- **`src/lib/upload.ts`**
+  - File upload handling
+  - Image processing
+  - Storage integration
+
+- **`src/lib/exports.ts`**
+  - Data export functionality
+  - CSV/PDF generation
+  - Downloadable report creation
+
+### System Infrastructure
+- **`src/middleware.ts`**
+  - Next.js middleware for route protection
+  - Authentication verification
+  - Role-based access control
+
+## 6. Hooks (16 files)
+
+### Authentication Hooks
+- **`src/hooks/useBetterAuthSession.ts`**
+  - Better Auth session access hook
+  - User authentication status
+  - Session data retrieval
+
+- **`src/hooks/useRBAC.ts`**
+  - Role-based permission checking
+  - Component-level access control
+  - Permission verification for UI elements
+
+### Course and Learning Hooks
+- **`src/hooks/useCourseProgress.ts`**
+  - Course completion tracking
+  - Lesson progress fetching
+  - Completion percentage calculations
+
+- **`src/hooks/useEnrollment.ts`**
+  - Enrollment data management
+  - Enrollment status verification
+  - Purchase eligibility checking
+
+- **`src/hooks/useExam.ts`**
+  - Exam state management
+  - Question navigation
+  - Answer submission handling
+
+- **`src/hooks/useExamState.ts`**
+  - Exam attempt state management
+  - Timer functionality
+  - Question response tracking
+
+- **`src/hooks/useCertificate.ts`**
+  - Certificate data fetching
+  - Download handling
+  - Verification status
+
+### UI and Interaction Hooks
+- **`src/hooks/useMediaQuery.ts`**
+  - Responsive design breakpoint detection
+  - Screen size-based component rendering
+  - Window resize event handling
+
+- **`src/hooks/useToast.ts`**
+  - Toast notification management
+  - Show/hide notification functions
+  - Toast queue handling
+
+- **`src/hooks/useUserData.ts`**
+  - User profile data fetching
+  - Profile update functionality
+  - Authentication integration
+
+### Admin and Data Management Hooks
+- **`src/hooks/useDataTable.ts`**
+  - Table data management
+  - Sorting, filtering, pagination
+  - Row selection and actions
+
+- **`src/hooks/useEditor.ts`**
+  - Rich text editor state management
+  - Content saving and loading
+  - Image upload integration
+
+- **`src/hooks/useAnalytics.ts`**
+  - Analytics data fetching
+  - Chart data preparation
+  - Time period selection
+
+- **`src/hooks/useUpload.ts`**
+  - File upload state management
+  - Progress tracking
+  - Success/error handling
+
+## 7. Types (11 files)
+
+- **`src/types/index.ts`**
+  - Type re-exports from other files
+  - Common utility types
+  - Type guard functions
+
+- **`src/types/api.ts`**
+  - API request/response type definitions
+  - Endpoint-specific payload types
+  - Error response types
+
+- **`src/types/course.ts`**
+  - Course, Module, Lesson interfaces
+  - Course data structure definitions
+  - Course blueprint types for seeding
+
+- **`src/types/better-auth.d.ts`**
+  - Better Auth type declarations
+  - Session and user type extensions
+  - Module augmentation for custom fields
+
+- **`src/types/exam.ts`**
+  - Exam question and answer types
+  - Exam attempt state interfaces
+  - Result data structures
+
+- **`src/types/enrollment.ts`**
+  - Enrollment record types
+  - Progress tracking interfaces
+  - Certificate eligibility types
+
+- **`src/types/admin.ts`**
+  - Admin-specific interface definitions
+  - Dashboard data types
+  - User management types
+
+- **`src/types/analytics.ts`**
+  - Analytics data structure types
+  - Chart configuration interfaces
+  - Report format definitions
+
+- **`src/types/ui.ts`**
+  - Component prop interfaces
+  - Theme type definitions
+  - UI state types
+
+- **`src/types/forms.ts`**
+  - Form field definitions
+  - Validation schema types
+  - Form state interfaces
+
+- **`src/types/utils.ts`**
+  - Utility type helpers
+  - Common transformation types
+  - Generic type utilities
+
+## 8. Course Data Files (29 files)
+
+- **`src/data/courses/spe.ts`** - Strategic Planning and Execution
+- **`src/data/courses/pmf.ts`** - Project Management Fundamentals
+- **`src/data/courses/amb.ts`** - Agile Methodologies for Business
+- **`src/data/courses/bad.ts`** - Business Analytics and Data-Driven Decision Making
+- **`src/data/courses/fmn.ts`** - Financial Management for Non-Financial Managers
+- **`src/data/courses/msb.ts`** - Marketing Strategy and Brand Management
+- **`src/data/courses/dme.ts`** - Digital Marketing Essentials
+- **`src/data/courses/hrm.ts`** - Human Resource Management Principles
+- **`src/data/courses/obl.ts`** - Organizational Behavior and Leadership
+- **`src/data/courses/scl.ts`** - Supply Chain Management and Logistics
+- **`src/data/courses/rbc.ts`** - Risk Management and Business Continuity
+- **`src/data/courses/cge.ts`** - Corporate Governance and Ethics
+- **`src/data/courses/eim.ts`** - Entrepreneurship and Innovation Management
+- **`src/data/courses/ibg.ts`** - International Business and Global Strategy
+- **`src/data/courses/crm.ts`** - Customer Relationship Management
+- **`src/data/courses/smt.ts`** - Sales Management and Techniques
+- **`src/data/courses/omo.ts`** - Operations Management and Optimization
+- **`src/data/courses/bpi.ts`** - Business Process Improvement
+- **`src/data/courses/qms.ts`** - Quality Management Systems
+- **`src/data/courses/csr.ts`** - Corporate Social Responsibility
+- **`src/data/courses/blr.ts`** - Business Law and Regulations
+- **`src/data/courses/mas.ts`** - Mergers and Acquisitions Strategy
+- **`src/data/courses/bid.ts`** - Business Intelligence and Data Visualization
+- **`src/data/courses/ecs.ts`** - E-commerce Strategies and Management
+- **`src/data/courses/csb.ts`** - Cybersecurity for Business Leaders
+- **`src/data/courses/prc.ts`** - Public Relations and Crisis Communication
+- **`src/data/courses/pmk.ts`** - Performance Management and KPIs
+
+## 9. Public Assets (5 files)
+
+- **`public/images/logo.svg`**
+  - NSBS logo in scalable vector format
+  - Used across the platform for branding
+
+- **`public/images/favicon.ico`**
+  - Browser tab icon
+  - Multiple sizes for different devices
+
+- **`public/images/certificate-template.png`**
+  - Certificate background template
+  - Used in PDF generation
+
+- **`public/robots.txt`**
+  - Search engine crawler instructions
+  - Disallows private routes like /api
+
+- **`public/sitemap.xml`**
+  - Website structure for search engines
+  - Lists all public pages for indexing
+
+## Implementation Plan
+
+1. **Core Infrastructure Setup**
+   - Install Next.js 15.3.1 with TypeScript support
+   - Configure Prisma with Supabase/PostgreSQL
+   - Set up Better Auth integration
+
+2. **Authentication System**
+   - Implement Better Auth routes and components
+   - Create user synchronization between auth and database
+   - Develop protected routes and middleware
+
+3. **Course Management**
+   - Build course data models and relationships
+   - Implement course viewing interface with sidebar navigation
+   - Create lesson completion tracking system
+
+4. **Exam and Certification**
+   - Develop the exam interface and question management
+   - Implement scoring and certificate generation
+   - Build certificate download functionality
+
+5. **Payment Processing**
+   - Integrate Stripe for course purchases
+   - Implement webhook handling for enrollment creation
+   - Add exam voucher purchase functionality
+
+6. **Admin Capabilities**
+   - Create admin dashboard and user management
+   - Build course content editing interface
+   - Implement analytics and reporting
+
+7. **Deployment and DevOps**
+   - Configure Docker for containerization
+   - Set up CI/CD pipeline
+   - Implement monitoring and logging
+
+This comprehensive file structure provides a production-ready blueprint for the NSBS platform, addressing all requirements outlined in the specifications while maintaining a clean, organized architecture.​​​​​​​​​​​​​​​​

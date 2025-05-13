@@ -1,0 +1,341 @@
+# NSBS Platform: Comprehensive Inclusion and Exclusion Guidelines
+
+## Core Platform Requirements
+
+### MUST INCLUDE:
+
+1. **Text-Based Content Only**
+   - All course content must be purely text-based
+   - Rich text formatting (paragraphs, headings, lists, bold/italic)
+   - Lesson content must have clear introduction, body, and conclusion
+   - Content must follow scaffolded progression with circular reinforcement
+
+2. **Self-Paced Learning Structure**
+   - No enforced time limits or deadlines
+   - Progress tracking solely based on completed lessons
+   - User-controlled learning schedule
+   - No suggested timelines or completion estimates
+
+3. **Distraction-Free UI**
+   - Clean, minimal interface focused on content
+   - No promotional elements, pop-ups, or notifications
+   - Clear, consistent navigation
+   - High contrast for readability
+
+4. **Better Auth Integration**
+   - Email/password authentication
+   - Social login providers (Google, GitHub, Facebook, LinkedIn)
+   - Magic link authentication
+   - Session management with proper security
+
+5. **Course Structure**
+   - Hierarchical: Courses > Modules > Lessons
+   - No prerequisites between courses
+   - 54-150 lessons per course
+   - Even distribution of lessons across modules
+
+6. **Assessment System**
+   - Single final exam per course
+   - 100 multiple-choice questions
+   - 4 answer options per question
+   - 80% passing threshold (80 out of 100 questions)
+   - 2 initial exam attempts per course
+   - Option to purchase 1 additional attempt ($149)
+
+7. **Progress Tracking**
+   - Lesson-by-lesson completion tracking
+   - "Mark lesson complete" functionality
+   - Progress visualization (percentage, completed/total)
+   - All lessons must be completed to access final exam
+
+8. **Certification**
+   - PDF certificate upon passing final exam
+   - Certificate includes: student name, course name, date, ID
+   - Certificate download functionality
+   - Certificates listing page
+
+9. **Database Schema**
+   - User management (aligned with Better Auth)
+   - Course, Module, Lesson structure
+   - Enrollment and progress tracking
+   - Exam attempts and results
+   - Certificate records
+
+10. **Payment Processing**
+    - One-time payment for each course
+    - Stripe integration for secure payments
+    - Webhook handling for enrollment creation
+    - Additional exam voucher purchases
+
+11. **Accessibility Compliance**
+    - WCAG 2.1 AA minimum standards
+    - Proper semantic HTML structure
+    - ARIA attributes for interactive elements
+    - Keyboard navigation support
+    - Focus management for modals and dialogs
+
+12. **Responsive Design**
+    - Mobile, tablet, and desktop compatibility
+    - Adaptive layouts for all screen sizes
+    - Touch-friendly UI elements
+    - Collapsible navigation on smaller screens
+
+13. **Dark Theme**
+    - Full dark mode support
+    - High contrast for readability
+    - Consistent color scheme across light/dark modes
+
+14. **SEO Optimization**
+    - Proper metadata for all pages
+    - Semantic HTML structure
+    - robots.txt and sitemap.xml
+    - Crawlable public pages
+
+15. **Real-World Examples**
+    - Practical, workplace-relevant examples
+    - Step-by-step guidance for professional application
+    - Emphasis on in-demand skills
+
+### MUST EXCLUDE:
+
+1. **Content Formats**
+   - ❌ Videos or audio content
+   - ❌ External links or references
+   - ❌ Embedded media
+   - ❌ Downloads other than certificates
+
+2. **Assignments & Activities**
+   - ❌ Homework assignments
+   - ❌ Projects or capstone projects
+   - ❌ Case studies (explicitly prohibited)
+   - ❌ Interactive exercises
+   - ❌ Coding exercises or labs
+   - ❌ Quizzes or knowledge checks within lessons
+   - ❌ Essays or written assignments
+   - ❌ Extra-curricular activities
+
+3. **Social & Collaborative Features**
+   - ❌ Discussion forums
+   - ❌ Peer collaboration
+   - ❌ Group projects
+   - ❌ Live sessions
+   - ❌ Webinars
+   - ❌ Instructor interaction
+   - ❌ Social sharing
+
+4. **Instructors & Teaching Elements**
+   - ❌ Instructor profiles or bios
+   - ❌ Instructor videos or messages
+   - ❌ Office hours
+   - ❌ Teaching assistants
+   - ❌ Tutoring services
+
+5. **Course Mechanics**
+   - ❌ Prerequisites between courses
+   - ❌ Difficulty ratings or levels
+   - ❌ Time estimates for completion
+   - ❌ Progress trackers beyond lesson completion
+   - ❌ Learning paths or sequences
+   - ❌ Course recommendations
+
+6. **Support Services**
+   - ❌ Live chat support
+   - ❌ Help desk or ticketing system
+   - ❌ Technical support
+   - ❌ Resume builders
+   - ❌ Career services
+
+7. **Business Model Elements**
+   - ❌ Subscriptions (only one-time payments)
+   - ❌ Bundle discounts
+   - ❌ Free trials
+   - ❌ Premium features
+   - ❌ Tiered pricing
+
+8. **Content Attribution**
+   - ❌ "Developed by..." statements
+   - ❌ Author credits
+   - ❌ Source citations
+   - ❌ References to external resources
+
+9. **Marketing Elements**
+   - ❌ Testimonials
+   - ❌ Reviews
+   - ❌ Ratings
+   - ❌ Social proof elements
+   - ❌ Cross-promotion of courses
+
+10. **Outcome Guarantees**
+    - ❌ Job placement promises
+    - ❌ Salary increase claims
+    - ❌ Career success guarantees
+    - ❌ Certification value claims
+
+11. **Time-Related Elements**
+    - ❌ Course durations
+    - ❌ Estimated completion times
+    - ❌ Time-to-complete estimates
+    - ❌ Due dates or deadlines
+    - ❌ Calendar integration
+
+12. **Gamification**
+    - ❌ Points or scoring systems
+    - ❌ Badges or achievements
+    - ❌ Leaderboards
+    - ❌ Streaks or chains
+    - ❌ Rewards or incentives
+
+13. **External Resources**
+    - ❌ Suggested readings
+    - ❌ Book recommendations
+    - ❌ External websites
+    - ❌ Additional resources section
+    - ❌ "Learn more" links
+
+14. **Incomplete or Partial Content**
+    - ❌ Placeholder text
+    - ❌ "Coming soon" sections
+    - ❌ Beta features
+    - ❌ Incomplete lessons
+
+15. **Jargon & Complexity**
+    - ❌ Unexplained technical terms
+    - ❌ Academic jargon without definitions
+    - ❌ Complex content without clear explanations
+    - ❌ Assumed prior knowledge
+
+## Lesson Content Guidelines
+
+### MUST INCLUDE:
+
+1. **Proper Structure**
+   - Clear introduction establishing purpose and context
+   - Logical sequence of concepts
+   - Real-world examples (not case studies)
+   - Conclusion with key points
+   - Progressive yet circular curriculum design
+
+2. **Formatting Elements**
+   - Key concept boxes
+   - Important information highlights
+   - Practical example sections
+   - Properly structured headings (H1-H4)
+   - Bulleted and numbered lists where appropriate
+
+3. **Comprehensive Coverage**
+   - All necessary topics and subtopics
+   - Thorough explanation of concepts
+   - Complete definitions of terms
+   - Clear examples of application
+
+4. **Accessibility**
+   - Simple, straightforward language
+   - Clear explanations of all technical terms
+   - Content designed for diverse backgrounds and learning preferences
+   - Logical information hierarchy
+
+5. **Professional Focus**
+   - Workplace-relevant examples
+   - Practical applications of concepts
+   - Skills that enhance employability
+   - Real-world scenarios professionals might encounter
+
+### MUST EXCLUDE:
+
+1. **Unfinished Content**
+   - ❌ Incomplete sentences
+   - ❌ Incomplete paragraphs
+   - ❌ Partial explanations
+   - ❌ "To be continued" sections
+
+2. **Poor Quality Writing**
+   - ❌ Vague explanations
+   - ❌ Choppy writing style
+   - ❌ Confusing content
+   - ❌ Ambiguous instructions
+
+3. **External References**
+   - ❌ Mentions of external sources
+   - ❌ Links to websites
+   - ❌ Book recommendations
+   - ❌ References section
+
+4. **Case Studies**
+   - ❌ Any mention or use of case studies
+   - ❌ Extended narrative examples labeled as case studies
+   - ❌ References to real company examples formatted as case studies
+   - ❌ Fictional scenario exercises identified as case studies
+
+5. **Assignment Language**
+   - ❌ Homework tasks
+   - ❌ "Try this yourself" exercises
+   - ❌ Submit/upload instructions
+   - ❌ Graded activities
+
+## Implementation Guidelines
+
+### MUST INCLUDE:
+
+1. **Better Auth Integration**
+   - Full implementation of Better Auth authentication
+   - Support for email/password, social providers, magic links
+   - Proper session management
+   - User synchronization with database
+
+2. **Stripe Payment Processing**
+   - Course purchase checkout flow
+   - Additional exam voucher purchase option
+   - Webhook handling for enrollment creation
+   - Secure payment processing
+
+3. **Progressive Enhancement**
+   - Core functionality works without JavaScript
+   - Enhanced experience with JavaScript enabled
+   - Fallbacks for all interactive elements
+
+4. **Error Handling**
+   - Comprehensive client and server error handling
+   - User-friendly error messages
+   - Graceful degradation on failure
+   - Proper logging
+
+5. **Performance Optimization**
+   - Efficient database queries
+   - Proper indexing
+   - Image optimization
+   - Code splitting
+
+6. **Security Measures**
+   - Input validation
+   - CSRF protection
+   - Rate limiting
+   - Secure cookie handling
+   - XSS prevention
+
+### MUST EXCLUDE:
+
+1. **External Integrations**
+   - ❌ Third-party learning tools
+   - ❌ LMS integrations
+   - ❌ SSO beyond Better Auth
+   - ❌ Analytics beyond basic usage metrics
+
+2. **Advanced Features**
+   - ❌ AI-powered recommendations
+   - ❌ Adaptive learning paths
+   - ❌ Advanced user personalization
+   - ❌ Notification systems
+
+3. **User-Generated Content**
+   - ❌ Comments
+   - ❌ Reviews
+   - ❌ Notes
+   - ❌ Annotations
+
+4. **Social Features**
+   - ❌ Sharing functionality
+   - ❌ User profiles
+   - ❌ User-to-user messaging
+   - ❌ Community features
+
+This comprehensive guideline ensures strict adherence to the NSBS platform requirements, maintaining the focus on self-paced, text-based learning without any prohibited elements. Implementation should prioritize accessibility, performance, and security while delivering a clean, distraction-free learning experience.​​​​​​​​​​​​​​​​
