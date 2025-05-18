@@ -1,6 +1,3 @@
-
-// src/lib/auth-client.ts
-
 import { BetterAuthClient, BetterAuthProvider, useBetterAuth } from '@better-auth/react';
 import { MagicLinkPlugin } from '@better-auth/magic-link';
 import { SocialAuthPlugin } from '@better-auth/social';
@@ -24,6 +21,10 @@ const authClient = new BetterAuthClient({
   onSessionExpired: () => {
     // Redirect to login page when session expires
     window.location.href = '/login?expired=true';
+  },
+  onError: (error) => {
+    console.error('Better Auth Client Error:', error);
+    // Optionally, display a user-friendly error message or toast notification
   },
 });
 
@@ -84,5 +85,3 @@ export async function sendMagicLink(email: string) {
 }
 
 export default authClient;
-
-/* Developed by Luccas A E | 2025 */

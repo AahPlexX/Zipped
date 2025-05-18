@@ -1,6 +1,3 @@
-
-// src/middleware.ts
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { BetterAuthMiddlewareAdapter } from '@better-auth/next';

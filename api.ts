@@ -1,9 +1,3 @@
-// src/types/api.ts
-// This file defines types and interfaces for API request and response payloads,
-// ensuring type safety for client-server communication. It includes generic
-// structures for success and error responses, as well as endpoint-specific types.
-// Developed by Luccas A E | 2025
-
 import { ZodIssue } from 'zod'; // For detailed validation errors, as seen in Nsbs essentials
 import { Course, Lesson, ModuleOverview } from './course';
 import { EnrollmentProgress, LessonProgressUpdateResponse } from './enrollment';

@@ -1,6 +1,3 @@
-
-// src/lib/auth.ts
-
 import { betterAuth } from '@better-auth/core';
 import { betterAuthConfig } from '@better-auth/next';
 import { PrismaAdapter } from '@better-auth/prisma';
