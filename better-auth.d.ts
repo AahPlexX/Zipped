@@ -1,4 +1,3 @@
-
 import 'next-auth';
 import { UserRole } from '@prisma/client';
 
@@ -10,6 +9,8 @@ declare module '@better-auth/core' {
       email?: string | null;
       image?: string | null;
       role?: UserRole;
+      emailVerified?: Date | null; // Additional field
+      lastLoginAt?: Date | null; // Additional field
     };
   }
   
@@ -19,5 +20,7 @@ declare module '@better-auth/core' {
     email?: string | null;
     image?: string | null;
     role?: UserRole;
+    emailVerified?: Date | null; // Additional field
+    lastLoginAt?: Date | null; // Additional field
   }
 }

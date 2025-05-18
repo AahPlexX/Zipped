@@ -1,8 +1,3 @@
-// src/types/admin.ts
-// Defines types and interfaces specific to the admin panel, including
-// data structures for dashboards, user management, and course management.
-// Developed by Luccas A E | 2025
-
 import { UserRole } from './better-auth.d'; // Assuming UserRole is defined here
 import { CourseBlueprint, Course, Module, Lesson } from './course';
 import { Enrollment, Certificate } from './enrollment';
